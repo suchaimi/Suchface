@@ -24,7 +24,25 @@ const joinPrivateRoom = (socket, namespace) => ({ username, room, to }) => {
 
             if (userToTalk.privateChat) {
                 namespace.to(to).emit('leavePrivateRoom', { to, room, from: username, privateMessage: `${to} is already talking`})
+                socket.leave(to, () => {
+                    console.log(`user ${username} forced to left the room`)
+                })
+                return
             }
+            // if the user is not talking we update the flag and notify the other user
+            userToTalk.privateChat = true
+            namespace.socket.in(room).emit('privateChat', { username, to })
         }
+    })
+}
+
+const leavePrivateRoom = (socket, namespace) => ({ room, from, to }) => {
+    let usersRoom = users[room]
+    let userToTalk = userRoom.find(user => user.username === to)
+    // update the flag and notify the other user
+    userToTalk.privateChat = false
+    namespace.to(to).emit('leavePrivateRoom', { to, from, privateMessage: `${to} has closed the chat`})
+    socket.leave(to, () => {
+        console.log(`user ${from} left the private chat with ${to}`)
     })
 }
